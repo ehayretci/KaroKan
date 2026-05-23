@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#fdfdff">
   <title>karokan</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
@@ -17,27 +18,55 @@
     <h1 id="title">
       <span class="title-red">karo</span><span class="title-blue">kan</span>
     </h1>
-    <p id="tagline">A two-player strategy game on a hexagonal board.</p>
     <button id="play-btn">Play Game</button>
+    <p id="creator">Created by: Erim Hayretci</p>
   </section>
+
+
+  <!-- NAME ENTRY MODAL -->
+  <div id="name-modal" hidden>
+    <div id="name-modal-inner">
+      <h2>Enter Player Names</h2>
+      <div class="name-field">
+        <label class="name-label" for="name-red">
+          <span class="label-dot red-dot"></span>Red Player
+        </label>
+        <input type="text" id="name-red" placeholder="Red" maxlength="18" autocomplete="off">
+      </div>
+      <div class="name-field">
+        <label class="name-label" for="name-blue">
+          <span class="label-dot blue-dot"></span>Blue Player
+        </label>
+        <input type="text" id="name-blue" placeholder="Blue" maxlength="18" autocomplete="off">
+      </div>
+      <button id="confirm-names-btn">Start Game</button>
+    </div>
+  </div>
 
 
   <!-- GAME SCREEN -->
   <section id="game-screen" hidden>
-    <div id="container">
-      <!-- grid only -->
-      <div id="left">
-        <div id="grid"></div>
+
+    <!-- STAGE INDICATOR -->
+    <div id="stage-bar">
+      <span id="stage-dot" class="stage-dot"></span>
+      <span id="stage-name"></span>
+      <span class="stage-sep">·</span>
+      <span id="stage-action"></span>
+    </div>
+
+    <div id="game-layout">
+
+      <!-- RED PANEL -->
+      <div id="panel-red" class="panel red">
+        <strong id="red-name-display">Red</strong>
+        <div id="holders-red" class="stone-holders"></div>
       </div>
-      <!-- score panels and controls -->
-      <div id="right">
-        <div id="panel-red" class="panel red">
-          <strong>Red Player</strong>
-          <div>Score: <span id="score-red">0</span></div>
-        </div>
-        <div id="panel-blue" class="panel blue">
-          <strong>Blue Player</strong>
-          <div>Score: <span id="score-blue">0</span></div>
+
+      <!-- BOARD + CONTROLS -->
+      <div id="board-area">
+        <div id="grid-frame">
+          <div id="grid"></div>
         </div>
         <div id="controls">
           <button data-dir="nw" aria-label="Move up-left"><span class="arrow">→</span></button>
@@ -48,13 +77,22 @@
           <button data-dir="se" aria-label="Move down-right"><span class="arrow">→</span></button>
         </div>
       </div>
+
+      <!-- BLUE PANEL -->
+      <div id="panel-blue" class="panel blue">
+        <strong id="blue-name-display">Blue</strong>
+        <div id="holders-blue" class="stone-holders"></div>
+      </div>
+
     </div>
 
-    <!-- WIN -->
+    <!-- WIN OVERLAY -->
     <div id="overlay" hidden>
+      <div id="confetti-area"></div>
       <div id="winner-text"></div>
       <button id="again-btn">New Game</button>
     </div>
+
   </section>
 
 

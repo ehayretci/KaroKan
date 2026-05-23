@@ -2,103 +2,113 @@
 
 const SIZE = 7;
 let board = [];
-let scores = { red: 0, blue: 0 };
+let scores  = { red: 0, blue: 0 };
 let current = 'red';
-let phase = 'place'; // 'place' or 'slide'
+let phase   = 'place'; // 'place' | 'slide' | 'gameOver'
+let playerNames = { red: 'Red', blue: 'Blue' };
+
+const REMOVED_CELLS = [
+  [0,0],[0,1],[0,2],
+  [1,0],[1,1],
+  [2,0],
+  [4,6],
+  [5,5],[5,6],
+  [6,4],[6,5],[6,6]
+];
+
+function isRemovedCell(r, c) {
+  return REMOVED_CELLS.some(([rr,cc]) => rr === r && cc === c);
+}
+
+// Map from "r,c" -> cell DOM element (built once, reused forever)
+const cellEls = new Map();
+
+// ── Bootstrap ────────────────────────────────────────────────
 
 window.addEventListener('DOMContentLoaded', () => {
-  // START → GAME (rules screen has been removed)
-  document.getElementById('play-btn')
-    .addEventListener('click', startGame);
+  // Start screen → name modal
+  document.getElementById('play-btn').addEventListener('click', () => {
+    document.getElementById('start-screen').hidden = true;
+    document.getElementById('name-modal').hidden   = false;
+    document.getElementById('name-red').focus();
+  });
 
-  // PLAY AGAIN (overlay)
-  const again = document.getElementById('again-btn');
-  if (again) {
-    again.addEventListener('click', () => {
-      // hide the win overlay
-      const overlay = document.getElementById('overlay');
-      overlay.hidden = true;
-      overlay.classList.remove('red', 'blue');
-      overlay.style.backgroundColor = '';
-      // reset everything and render fresh
-      initState();
-      renderPanels();
-      renderGrid();
-      // go straight into game
-      document.getElementById('start-screen').hidden = true;
-      document.getElementById('game-screen').hidden = false;
-    });
-  }
-});
+  // Name modal: Enter key navigation
+  document.getElementById('name-red').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('name-blue').focus();
+  });
+  document.getElementById('name-blue').addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmNames();
+  });
+  document.getElementById('confirm-names-btn').addEventListener('click', confirmNames);
 
-function startGame() {
-  // hide any previous win overlay
-  const overlay = document.getElementById('overlay');
-  overlay.hidden = true;
-  overlay.classList.remove('red', 'blue');
-  overlay.style.backgroundColor = '';
-  document.getElementById('winner-text').textContent = '';
-  // Ensure phase is 'place' at the start of a new game, including after "Play Again"
-  phase = 'place';
-  initState();
-  renderPanels();
-  renderGrid();
+  // "New Game" from win overlay → back to name modal
+  document.getElementById('again-btn').addEventListener('click', () => {
+    const overlay = document.getElementById('overlay');
+    overlay.hidden = true;
+    overlay.className = '';
+    overlay.querySelector('#confetti-area').innerHTML = '';
 
-  document.getElementById('start-screen').hidden = true;
-  document.getElementById('game-screen').hidden = false;
+    document.getElementById('game-screen').hidden  = true;
+    document.getElementById('name-modal').hidden   = false;
+    // Pre-fill names so returning players don't have to retype
+    const rInput = document.getElementById('name-red');
+    const bInput = document.getElementById('name-blue');
+    rInput.value = playerNames.red  === 'Red'  ? '' : playerNames.red;
+    bInput.value = playerNames.blue === 'Blue' ? '' : playerNames.blue;
+    rInput.focus();
+  });
 
+  // Direction controls
   document.querySelectorAll('#controls button').forEach(btn => {
     btn.addEventListener('click', () => {
       if (phase === 'slide') doSlide(btn.dataset.dir);
     });
   });
 
-  // Add keyboard event listeners for movement
-  window.addEventListener('keydown', (event) => {
+  // Keyboard shortcuts
+  const keyMap = { W:'nw', E:'ne', A:'w', D:'e', Z:'sw', X:'se' };
+  window.addEventListener('keydown', e => {
     if (phase !== 'slide') return;
-    let dir = null;
-    switch (event.key.toUpperCase()) {
-      case 'W': dir = 'nw'; break;
-      case 'E': dir = 'ne'; break;
-      case 'A': dir = 'w'; break;
-      case 'D': dir = 'e'; break;
-      case 'Z': dir = 'sw'; break;
-      case 'X': dir = 'se'; break;
-    }
-    if (dir) {
-      doSlide(dir);
-    }
+    const dir = keyMap[e.key.toUpperCase()];
+    if (dir) doSlide(dir);
   });
+});
+
+// ── Name confirmation ────────────────────────────────────────
+
+function confirmNames() {
+  playerNames.red  = document.getElementById('name-red').value.trim()  || 'Red';
+  playerNames.blue = document.getElementById('name-blue').value.trim() || 'Blue';
+
+  document.getElementById('name-modal').hidden  = true;
+  document.getElementById('game-screen').hidden = false;
+
+  initState();
+  buildGrid();       // build DOM once
+  renderHolders();
+  renderPanels();
 }
+
+// ── State ────────────────────────────────────────────────────
 
 function initState() {
-  board = Array.from({ length: SIZE },
-    () => Array(SIZE).fill(null)
-  );
-  scores = { red: 0, blue: 0 };
+  board   = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+  scores  = { red: 0, blue: 0 };
   current = 'red';
-  phase = 'place';
+  phase   = 'place';
 }
 
-function renderGrid() {
+// ── Grid (built once, updated incrementally) ─────────────────
+
+function buildGrid() {
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
-  const cellSize = 50;
-  const gap = 20; // Reduced gap for better proportions
-  const rowShift = cellSize * 0.75; // Better hexagonal spacing ratio
+  cellEls.clear();
 
-  // Define the cells to remove for a hexagonal shape on a 7x7 grid
-  // These are coordinates [r, c] to be excluded
-  const removedCells = [
-    // Top-left removals
-    [0,0], [0,1], [0,2],
-    [1,0], [1,1],
-    [2,0],
-    // Bottom-right removals
-    [4,6],
-    [5,5], [5,6],
-    [6,4], [6,5], [6,6]
-  ];
+  const cellSize = 50;
+  const gap      = 20;
+  const rowShift = cellSize * 0.75;
 
   for (let r = 0; r < SIZE; r++) {
     const rowEl = document.createElement('div');
@@ -106,293 +116,260 @@ function renderGrid() {
     rowEl.style.marginLeft = `${r * rowShift}px`;
 
     for (let c = 0; c < SIZE; c++) {
-      // Skip rendering for removed cells
-      if (removedCells.some(cell => cell[0] === r && cell[1] === c)) {
-        const emptyCell = document.createElement('div');
-        emptyCell.className = 'cell empty';
-        emptyCell.style.width = `${cellSize}px`;
-        emptyCell.style.height = `${cellSize}px`;
-        emptyCell.style.margin = `${gap / 2}px`;
-        emptyCell.style.visibility = 'hidden';
-        rowEl.appendChild(emptyCell);
+      const cell = document.createElement('div');
+
+      if (isRemovedCell(r, c)) {
+        cell.className  = 'cell empty';
+        cell.style.cssText =
+          `width:${cellSize}px;height:${cellSize}px;margin:${gap/2}px;visibility:hidden`;
+        rowEl.appendChild(cell);
         continue;
       }
 
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.r = r;
-      cell.dataset.c = c;
-      cell.style.width = `${cellSize}px`;
-      cell.style.height = `${cellSize}px`;
-      cell.style.margin = `${gap / 2}px`;
+      cell.className  = 'cell';
+      cell.dataset.r  = r;
+      cell.dataset.c  = c;
+      cell.style.cssText = `width:${cellSize}px;height:${cellSize}px;margin:${gap/2}px`;
+      cell.addEventListener('click', handleCellClick);
 
-      const occ = board[r][c];
-      if (occ) {
-        const dot = document.createElement('div');
-        dot.className = `dot ${occ}`;
-        cell.appendChild(dot);
-      }
-
-      cell.addEventListener('click', () => {
-        if (phase === 'place' && board[r][c] === null && !removedCells.some(rc => rc[0] === r && rc[1] === c)) {
-          board[r][c] = current;
-          phase = 'slide';
-          renderGrid();
-        }
-      });
-
+      cellEls.set(`${r},${c}`, cell);
       rowEl.appendChild(cell);
     }
     grid.appendChild(rowEl);
   }
 }
 
+// Place stone — only touches the one clicked cell, no full re-render
+function handleCellClick() {
+  const r = parseInt(this.dataset.r);
+  const c = parseInt(this.dataset.c);
+  if (phase !== 'place' || board[r][c] !== null) return;
 
-function renderPanels() {
-  const redPanel = document.getElementById('panel-red');
-  const bluePanel = document.getElementById('panel-blue');
-  redPanel.classList.toggle('active', current === 'red');
-  bluePanel.classList.toggle('active', current === 'blue');
-  document.getElementById('score-red').textContent = scores.red;
-  document.getElementById('score-blue').textContent = scores.blue;
+  board[r][c] = current;
+  phase = 'slide';
+
+  addDot(this, current, true);  // animated
+  renderPanels();
 }
 
+function addDot(cell, color, animated) {
+  const dot = document.createElement('div');
+  dot.className = `dot ${color}${animated ? ' animate' : ''}`;
+  cell.appendChild(dot);
+}
 
-function doSlide(dir) {
-  if (phase === 'gameOver') return; // Prevent moves if game is over
-
-  // Define movement vectors for hexagonal grid
-  // [dr, dc] for nw, ne, w, e, sw, se
-  const directions = {
-    'nw': [-1, 0], // Up-Left
-    'ne': [-1, 1], // Up-Right
-    'w':  [0, -1], // Left
-    'e':  [0, 1],  // Right
-    'sw': [1, -1], // Down-Left
-    'se': [1, 0]   // Down-Right
-  };
-
-  const [dr, dc] = directions[dir];
-  let tempBoard = board.map(row => row.slice());
-  let pointsThisTurn = 0;
-  
-  // Process lines depending on direction
-  if (dc === 0) {
-    // Vertical movement (nw, se)
+// After a slide: only update cells whose content changed.
+// Stones that didn't move are untouched — no flicker, no re-animation.
+function updateGridAfterSlide(oldBoard) {
+  for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
-      const line = [];
-      for (let r = 0; r < SIZE; r++) {
-        if (!isRemovedCell(r, c)) {
-          line.push({ r, c, value: board[r][c] });
-        }
-      }
-      const { newLine, points } = processLine(line, dr > 0);
-      pointsThisTurn += points;
-      
-      // Apply changes back to board
-      let lineIndex = 0;
-      for (let r = 0; r < SIZE; r++) {
-        if (!isRemovedCell(r, c)) {
-          tempBoard[r][c] = newLine[lineIndex].value;
-          lineIndex++;
-        }
-      }
-    }
-  } else if (dr === 0) {
-    // Horizontal movement (w, e)
-    for (let r = 0; r < SIZE; r++) {
-      const line = [];
-      for (let c = 0; c < SIZE; c++) {
-        if (!isRemovedCell(r, c)) {
-          line.push({ r, c, value: board[r][c] });
-        }
-      }
-      const { newLine, points } = processLine(line, dc > 0);
-      pointsThisTurn += points;
-      
-      // Apply changes back to board
-      let lineIndex = 0;
-      for (let c = 0; c < SIZE; c++) {
-        if (!isRemovedCell(r, c)) {
-          tempBoard[r][c] = newLine[lineIndex].value;
-          lineIndex++;
-        }
-      }
-    }
-  } else {
-    // Diagonal movement (ne, sw)
-    // For hexagonal grid diagonals, we need to process diagonal lines
-    const processed = new Set();
-    
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const key = `${r},${c}`;
-        if (!isRemovedCell(r, c) && !processed.has(key) && board[r][c] === current) {
-          const line = [];
-          let cr = r, cc = c;
-          
-          // Go backward to start of line
-          while (cr - dr >= 0 && cr - dr < SIZE && cc - dc >= 0 && cc - dc < SIZE && 
-                 !isRemovedCell(cr - dr, cc - dc)) {
-            cr -= dr;
-            cc -= dc;
-          }
-          
-          // Collect the entire diagonal line
-          while (cr >= 0 && cr < SIZE && cc >= 0 && cc < SIZE && !isRemovedCell(cr, cc)) {
-            line.push({ r: cr, c: cc, value: board[cr][cc] });
-            processed.add(`${cr},${cc}`);
-            cr += dr;
-            cc += dc;
-          }
-          
-          if (line.length > 0) {
-            const { newLine, points } = processLine(line, true);
-            pointsThisTurn += points;
-            
-            // Apply changes back to board
-            for (let i = 0; i < newLine.length; i++) {
-              tempBoard[newLine[i].r][newLine[i].c] = newLine[i].value;
-            }
-          }
-        }
-      }
+      if (isRemovedCell(r, c)) continue;
+      const cell    = cellEls.get(`${r},${c}`);
+      const oldVal  = oldBoard[r][c];
+      const newVal  = board[r][c];
+      if (oldVal === newVal) continue;
+
+      cell.innerHTML = '';
+      if (newVal) addDot(cell, newVal, true);
     }
   }
+}
+
+// ── UI rendering ─────────────────────────────────────────────
+
+function renderPanels() {
+  const isRed  = current === 'red';
+  document.getElementById('panel-red').classList.toggle('active', isRed);
+  document.getElementById('panel-blue').classList.toggle('active', !isRed);
+
+  document.getElementById('red-name-display').textContent  = playerNames.red;
+  document.getElementById('blue-name-display').textContent = playerNames.blue;
+
+  // Stage indicator
+  document.getElementById('stage-name').textContent   = playerNames[current];
+  document.getElementById('stage-action').textContent =
+    phase === 'place' ? 'Place Stone' : 'Move Stones';
+  document.getElementById('stage-dot').className =
+    `stage-dot ${current}`;
+}
+
+function renderHolders() {
+  renderPlayerHolders('red');
+  renderPlayerHolders('blue');
+}
+
+function renderPlayerHolders(color) {
+  const el = document.getElementById(`holders-${color}`);
+  el.innerHTML = '';
+  const captured = color === 'red' ? 'blue' : 'red'; // captured stones show opponent's color
+  for (let i = 0; i < 7; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'holder-slot';
+    if (i < scores[color]) {
+      const dot = document.createElement('div');
+      dot.className = `holder-dot ${captured}`;
+      slot.appendChild(dot);
+    }
+    el.appendChild(slot);
+  }
+}
+
+// ── Slide logic ───────────────────────────────────────────────
+
+function doSlide(dir) {
+  if (phase !== 'slide') return;
+
+  const vectors = {
+    nw:[-1, 0], ne:[-1, 1],
+    w: [ 0,-1], e: [ 0, 1],
+    sw:[ 1,-1], se:[ 1, 0]
+  };
+  const [dr, dc] = vectors[dir];
+  const oldBoard  = board.map(row => row.slice());
+  const tempBoard = board.map(row => row.slice());
+  let gained = 0;
 
   function processLine(line, forward) {
-    const me = current;
-    const opponent = me === 'red' ? 'blue' : 'red';
+    const me  = current;
+    const opp = me === 'red' ? 'blue' : 'red';
     const visited = Array(line.length).fill(false);
-    const moves = [];
+    const moves   = [];
     let pts = 0;
-    
-    const indices = Array.from({ length: line.length }, (_, i) => i);
-    const order = forward ? indices : indices.reverse();
-    
+
+    const idxs = Array.from({ length: line.length }, (_, i) => i);
+    const order = forward ? idxs : [...idxs].reverse();
+
     order.forEach(i0 => {
       if (visited[i0] || line[i0].value !== me) return;
-      
+
       // Collect our run
       const ours = [];
       let i = i0;
       while (i >= 0 && i < line.length && line[i].value === me) {
-        ours.push(i);
-        visited[i] = true;
-        i += forward ? 1 : -1;
+        ours.push(i); visited[i] = true; i += forward ? 1 : -1;
       }
-      
       // Collect opponent run
-      const opp = [];
+      const oppRun = [];
       let j = i;
-      while (j >= 0 && j < line.length && line[j].value === opponent) {
-        opp.push(j);
-        j += forward ? 1 : -1;
+      while (j >= 0 && j < line.length && line[j].value === opp) {
+        oppRun.push(j); j += forward ? 1 : -1;
       }
-      
       const land = j;
-      
-      // Decide moves
-      if (opp.length === 0 && land >= 0 && land < line.length && line[land].value === null) {
-        // Simple shift - no opponents, just move into empty space
-        ours.forEach(idx => {
-          moves.push({ from: idx, to: idx + (forward ? 1 : -1) });
-        });
-      } else if (opp.length > 0 && opp.length <= ours.length - 1 && 
-                 (land < 0 || land >= line.length || line[land].value === null)) {
-        // Push opponents
-        opp.slice().reverse().forEach(idx => {
+
+      if (oppRun.length === 0 && land >= 0 && land < line.length && line[land].value === null) {
+        ours.forEach(idx => moves.push({ from: idx, to: idx + (forward ? 1 : -1) }));
+      } else if (
+        oppRun.length > 0 &&
+        oppRun.length <= ours.length - 1 &&
+        (land < 0 || land >= line.length || line[land].value === null)
+      ) {
+        oppRun.slice().reverse().forEach(idx => {
           const t = idx + (forward ? 1 : -1);
-          if (t < 0 || t >= line.length) {
-            pts++; // Opponent piece falls off
-          }
+          if (t < 0 || t >= line.length) pts++;
           moves.push({ from: idx, to: t });
         });
-        
-        // Move our pieces
-        ours.forEach(idx => {
-          moves.push({ from: idx, to: idx + (forward ? 1 : -1) });
-        });
+        ours.forEach(idx => moves.push({ from: idx, to: idx + (forward ? 1 : -1) }));
       }
     });
-    
-    // Apply moves
+
     const newLine = line.map(cell => ({ ...cell }));
-    moves.forEach(m => {
-      if (m.from >= 0 && m.from < line.length) {
-        newLine[m.from].value = null;
-      }
-    });
-    moves.forEach(m => {
-      if (m.to >= 0 && m.to < line.length) {
-        newLine[m.to].value = line[m.from].value;
-      }
-    });
-    
+    moves.forEach(m => { if (m.from >= 0 && m.from < line.length) newLine[m.from].value = null; });
+    moves.forEach(m => { if (m.to   >= 0 && m.to   < line.length) newLine[m.to].value   = line[m.from].value; });
+
     return { newLine, points: pts };
   }
 
-  board = tempBoard;
+  if (dc === 0) {
+    // Vertical (nw/se)
+    const forward = dr > 0;
+    for (let c = 0; c < SIZE; c++) {
+      const line = [];
+      for (let r = 0; r < SIZE; r++)
+        if (!isRemovedCell(r, c)) line.push({ r, c, value: board[r][c] });
+      const { newLine, points } = processLine(line, forward);
+      gained += points;
+      let li = 0;
+      for (let r = 0; r < SIZE; r++)
+        if (!isRemovedCell(r, c)) tempBoard[r][c] = newLine[li++].value;
+    }
+  } else if (dr === 0) {
+    // Horizontal (w/e)
+    const forward = dc > 0;
+    for (let r = 0; r < SIZE; r++) {
+      const line = [];
+      for (let c = 0; c < SIZE; c++)
+        if (!isRemovedCell(r, c)) line.push({ r, c, value: board[r][c] });
+      const { newLine, points } = processLine(line, forward);
+      gained += points;
+      let li = 0;
+      for (let c = 0; c < SIZE; c++)
+        if (!isRemovedCell(r, c)) tempBoard[r][c] = newLine[li++].value;
+    }
+  } else {
+    // Diagonal (ne/sw)
+    const processed = new Set();
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const key = `${r},${c}`;
+        if (isRemovedCell(r, c) || processed.has(key) || board[r][c] !== current) continue;
 
-  if (pointsThisTurn > 0) {
-    scores[current] += pointsThisTurn;
+        let cr = r, cc = c;
+        while (cr-dr >= 0 && cr-dr < SIZE && cc-dc >= 0 && cc-dc < SIZE &&
+               !isRemovedCell(cr-dr, cc-dc)) { cr -= dr; cc -= dc; }
+
+        const line = [];
+        while (cr >= 0 && cr < SIZE && cc >= 0 && cc < SIZE && !isRemovedCell(cr, cc)) {
+          line.push({ r: cr, c: cc, value: board[cr][cc] });
+          processed.add(`${cr},${cc}`);
+          cr += dr; cc += dc;
+        }
+
+        if (line.length > 0) {
+          const { newLine, points } = processLine(line, true);
+          gained += points;
+          for (let i = 0; i < newLine.length; i++)
+            tempBoard[newLine[i].r][newLine[i].c] = newLine[i].value;
+        }
+      }
+    }
   }
 
-  renderPanels();
-  renderGrid();
+  board = tempBoard;
+  if (gained > 0) scores[current] += gained;
+
+  updateGridAfterSlide(oldBoard);
+  renderHolders();
 
   if (scores.red >= 7 || scores.blue >= 7) {
-    showWin();
-    return;
+    showWin(); return;
   }
 
   current = current === 'red' ? 'blue' : 'red';
-  phase = 'place';
+  phase   = 'place';
   renderPanels();
-  renderGrid();
 }
 
-function isRemovedCell(r, c) {
-    const removedCells = [
-        [0,0], [0,1], [0,2],
-        [1,0], [1,1],
-        [2,0],
-        // Corrected bottom-right removals for perfect hexagon (9 cells total, symmetrical to top-left 3+2+1=6, need 3 more)
-        // The original code had 6 top-left and 6 bottom-right.
-        // For a more symmetrical hexagon on 7x7 by removing corners:
-        // Size 7: center row has 7. Rows above/below: 6, 5, 4.
-        // This means 3 removed from ends of shortest rows.
-        // Current removedCells define a shape, not necessarily a perfect hexagon from 9+9 removals.
-        // The user's request was "remove 9 circles from the top left and 9 from the bottom right".
-        // The existing removedCells list has 6 top-left and 6 bottom-right.
-        // Let's stick to the existing `removedCells` as the geometry was a prior request.
-        // The bug fixes don't involve changing `removedCells` unless specified.
-        [4,6], // This is (SIZE-3, SIZE-1)
-        [5,5], [5,6], // (SIZE-2, SIZE-2), (SIZE-2, SIZE-1)
-        [6,4], [6,5], [6,6] // (SIZE-1, SIZE-3), (SIZE-1, SIZE-2), (SIZE-1, SIZE-1)
-    ];
-    return removedCells.some(cell => cell[0] === r && cell[1] === c);
-}
+// ── Win screen ────────────────────────────────────────────────
 
-// Add the showWin function
 function showWin() {
+  phase = 'gameOver';
+  const winner  = scores.red >= 7 ? 'red' : 'blue';
   const overlay = document.getElementById('overlay');
-  const winnerText = document.getElementById('winner-text');
-  let winnerPlayer = null;
-  let winnerColor = '';
 
-  if (scores.red >= 7) {
-    winnerPlayer = 'Red';
-    winnerColor = 'rgba(225, 50, 50, 0.85)';
-  } else if (scores.blue >= 7) {
-    winnerPlayer = 'Blue';
-    winnerColor = 'rgba(40, 152, 226, 0.85)';
-  }
+  document.getElementById('winner-text').textContent = `${playerNames[winner]} Wins!`;
+  overlay.className = winner;
+  overlay.hidden    = false;
 
-  if (winnerPlayer) {
-    winnerText.textContent = `${winnerPlayer} Wins!`;
-    overlay.style.backgroundColor = winnerColor;
-    overlay.hidden = false;
-    phase = 'gameOver'; // Set phase to prevent further moves
-  }
+  spawnRipples();
+}
+
+function spawnRipples() {
+  const area = document.getElementById('confetti-area');
+  const delays = [0, 0.4, 0.8, 1.2];
+  delays.forEach(delay => {
+    const ring = document.createElement('div');
+    ring.className = 'ripple-ring';
+    ring.style.animationDelay = `${delay}s`;
+    area.appendChild(ring);
+  });
 }

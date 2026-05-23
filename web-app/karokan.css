@@ -57,12 +57,14 @@ body {
   padding: 1.5rem;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 /* ============================================================
    START SCREEN
    ============================================================ */
 #start-screen {
+  position: relative;
   text-align: center;
   animation: fade-up 0.5s var(--ease) both;
   display: flex;
@@ -70,6 +72,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0;
+  width: 100%;
   min-height: calc(100vh - 3rem);
 }
 
@@ -147,7 +150,8 @@ body {
 }
 
 #creator {
-  margin-top: 3rem;
+  position: absolute;
+  bottom: 2rem;
   font-size: 0.78rem;
   color: var(--c-text-muted);
   letter-spacing: 0.05em;
@@ -300,13 +304,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: 1200px;
+  min-width: 1200px;
   flex: 1;
 }
 
 #score-panels {
   position: absolute;
-  left: 0;
+  left: 3rem;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -318,7 +323,7 @@ body {
 
 #game-layout #controls {
   position: absolute;
-  right: 0;
+  right: 3rem;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -493,8 +498,8 @@ body {
    ============================================================ */
 #controls {
   position: relative;
-  width: 180px;
-  height: 200px;
+  width: 204px;
+  height: 184px;
   flex-shrink: 0;
 }
 
@@ -529,12 +534,12 @@ body {
   box-shadow: none;
 }
 
-#controls button[data-dir="nw"] { top: 0;                    left: 24px; }
-#controls button[data-dir="ne"] { top: 0;                    right: 24px; }
+#controls button[data-dir="nw"] { top: 0;                    left: 38px; }
+#controls button[data-dir="ne"] { top: 0;                    right: 38px; }
 #controls button[data-dir="w"]  { top: calc(50% - 26px);     left: 0; }
 #controls button[data-dir="e"]  { top: calc(50% - 26px);     right: 0; }
-#controls button[data-dir="sw"] { bottom: 0;                 left: 24px; }
-#controls button[data-dir="se"] { bottom: 0;                 right: 24px; }
+#controls button[data-dir="sw"] { bottom: 0;                 left: 38px; }
+#controls button[data-dir="se"] { bottom: 0;                 right: 38px; }
 
 #controls button .arrow { display: inline-block; line-height: 1; }
 
@@ -660,55 +665,8 @@ body {
    ============================================================ */
 @media (max-width: 1200px) {
   #game-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    position: static;
-  }
-
-  #score-panels {
-    position: static;
-    transform: none;
-    max-width: 100%;
-    flex-direction: row;
-    width: 100%;
-    justify-content: center;
-    gap: 0.75rem;
-  }
-
-  #game-layout #controls {
-    position: static;
-    transform: none;
-  }
-
-  .panel {
-    flex-direction: row;
-    min-width: unset;
-    width: 100%;
-    max-width: 240px;
-    padding: 0.9rem 1.25rem;
-    align-items: center;
-  }
-
-  .stone-holders {
-    flex-direction: row;
-    gap: 5px;
-  }
-}
-
-@media (max-width: 560px) {
-  body { padding: 0.75rem; }
-
-  #grid {
-    transform: scale(0.75);
+    transform: scale(calc(100vw / 1200));
     transform-origin: center center;
   }
-
-  #grid-frame { padding: 1rem; }
-
-  .holder-slot { width: 24px; height: 24px; }
 }
 
-@media (max-width: 380px) {
-  #grid { transform: scale(0.6); }
-}

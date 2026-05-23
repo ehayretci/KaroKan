@@ -57,31 +57,33 @@
 
     <div id="game-layout">
 
-      <!-- RED PANEL -->
-      <div id="panel-red" class="panel red">
-        <strong id="red-name-display">Red</strong>
-        <div id="holders-red" class="stone-holders"></div>
+      <!-- LEFT: SCORE PANELS (side-by-side) -->
+      <div id="score-panels">
+        <div id="panel-red" class="panel red">
+          <strong id="red-name-display">Red</strong>
+          <div id="holders-red" class="stone-holders"></div>
+        </div>
+        <div id="panel-blue" class="panel blue">
+          <strong id="blue-name-display">Blue</strong>
+          <div id="holders-blue" class="stone-holders"></div>
+        </div>
       </div>
 
-      <!-- BOARD + CONTROLS -->
+      <!-- CENTER: BOARD -->
       <div id="board-area">
         <div id="grid-frame">
           <div id="grid"></div>
         </div>
-        <div id="controls">
-          <button data-dir="nw" aria-label="Move up-left"><span class="arrow">→</span></button>
-          <button data-dir="ne" aria-label="Move up-right"><span class="arrow">→</span></button>
-          <button data-dir="w"  aria-label="Move left"><span class="arrow">→</span></button>
-          <button data-dir="e"  aria-label="Move right"><span class="arrow">→</span></button>
-          <button data-dir="sw" aria-label="Move down-left"><span class="arrow">→</span></button>
-          <button data-dir="se" aria-label="Move down-right"><span class="arrow">→</span></button>
-        </div>
       </div>
 
-      <!-- BLUE PANEL -->
-      <div id="panel-blue" class="panel blue">
-        <strong id="blue-name-display">Blue</strong>
-        <div id="holders-blue" class="stone-holders"></div>
+      <!-- RIGHT: HEX ARROW CONTROLS -->
+      <div id="controls">
+        <button data-dir="nw" aria-label="Move up-left"><span class="arrow">→</span></button>
+        <button data-dir="ne" aria-label="Move up-right"><span class="arrow">→</span></button>
+        <button data-dir="w"  aria-label="Move left"><span class="arrow">→</span></button>
+        <button data-dir="e"  aria-label="Move right"><span class="arrow">→</span></button>
+        <button data-dir="sw" aria-label="Move down-left"><span class="arrow">→</span></button>
+        <button data-dir="se" aria-label="Move down-right"><span class="arrow">→</span></button>
       </div>
 
     </div>

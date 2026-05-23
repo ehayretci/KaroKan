@@ -7,15 +7,8 @@ let current = 'red';
 let phase = 'place'; // 'place' or 'slide'
 
 window.addEventListener('DOMContentLoaded', () => {
-  // START → RULES
+  // START → GAME (rules screen has been removed)
   document.getElementById('play-btn')
-    .addEventListener('click', () => {
-      document.getElementById('start-screen').hidden = true;
-      document.getElementById('rules-screen').hidden = false;
-    });
-
-  // RULES → GAME
-  document.getElementById('go-btn')
     .addEventListener('click', startGame);
 
   // PLAY AGAIN (overlay)
@@ -23,14 +16,16 @@ window.addEventListener('DOMContentLoaded', () => {
   if (again) {
     again.addEventListener('click', () => {
       // hide the win overlay
-      document.getElementById('overlay').hidden = true;
+      const overlay = document.getElementById('overlay');
+      overlay.hidden = true;
+      overlay.classList.remove('red', 'blue');
+      overlay.style.backgroundColor = '';
       // reset everything and render fresh
       initState();
       renderPanels();
       renderGrid();
-      // go straight into game (skip start/rules)
+      // go straight into game
       document.getElementById('start-screen').hidden = true;
-      document.getElementById('rules-screen').hidden = true;
       document.getElementById('game-screen').hidden = false;
     });
   }
@@ -40,15 +35,16 @@ function startGame() {
   // hide any previous win overlay
   const overlay = document.getElementById('overlay');
   overlay.hidden = true;
+  overlay.classList.remove('red', 'blue');
+  overlay.style.backgroundColor = '';
   document.getElementById('winner-text').textContent = '';
   // Ensure phase is 'place' at the start of a new game, including after "Play Again"
-  phase = 'place'; 
+  phase = 'place';
   initState();
   renderPanels();
   renderGrid();
 
   document.getElementById('start-screen').hidden = true;
-  document.getElementById('rules-screen').hidden = true;
   document.getElementById('game-screen').hidden = false;
 
   document.querySelectorAll('#controls button').forEach(btn => {

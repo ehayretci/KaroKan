@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
   <title>karokan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="karokan.css">
 </head>
 <body>
@@ -10,57 +15,11 @@
   <!-- START SCREEN -->
   <section id="start-screen">
     <h1 id="title">
-  <span class="title-red">karo</span><span class="title-blue">kan</span>
-  </h1>
+      <span class="title-red">karo</span><span class="title-blue">kan</span>
+    </h1>
+    <p id="tagline">A two-player strategy game on a hexagonal board.</p>
     <button id="play-btn">Play Game</button>
   </section>
-
-<!-- RULES SCREEN -->
-<section id="rules-screen" hidden>
-  <div class="rules-container">
-    <h2>Game Rules</h2>
-
-    <div class="rule-block" style="margin-top: 1rem;">
-      <h3>🎯 Objective</h3>
-      <ul>
-        <li>Be the first to reach 7 points by pushing your opponent’s pieces off the board.</li>
-      </ul>
-    </div>
-
-    <div class="rule-block" style="margin-top: 1rem;">
-      <h3>🔄 Turn Structure</h3>
-      <ul>
-        <li>Place one dot on any empty cell, each round.</li>
-        <li>Then slide every one of your dots by one step in the chosen direction (↖, ↗, ←, →, ↙, ↘).</li>
-      </ul>
-    </div>
-
-    <div class="rule-block" style="margin-top: 1rem;">
-      <h3>⚡ Movement</h3>
-      <ul>
-        <li>If a piece has an empty cell in the chosen direction, it slides there.</li>
-        <li>If there’s no empty space to shift into, pieces remain in place.</li>
-        <li>You can push opponent pieces, but only if your contiguous run is longer.</li>
-        <li>Every piece pushed off the grid earns 1 point.</li>
-      </ul>
-    </div>
-
-    <div class="rule-block" style="margin-top: 1rem;">
-      <h3>🕹️ Controls</h3>
-      <ul>
-        <li>You can use both the arrows and keyboard keys to move your pieces:</li>
-        <li><strong>W:</strong> Up-Left (↖)</li>
-        <li><strong>E:</strong> Up-Right (↗)</li>
-        <li><strong>A:</strong> Left (←)</li>
-        <li><strong>D:</strong> Right (→)</li>
-        <li><strong>Z:</strong> Down-Left (↙)</li>
-        <li><strong>X:</strong> Down-Right (↘)</li>
-      </ul>
-    </div>
-
-    <button id="go-btn">Let’s Go!</button>
-  </div>
-</section>
 
 
   <!-- GAME SCREEN -->
@@ -81,12 +40,12 @@
           <div>Score: <span id="score-blue">0</span></div>
         </div>
         <div id="controls">
-          <button data-dir="nw"><span class="arrow">→</span></button>
-          <button data-dir="ne"><span class="arrow">→</span></button>
-          <button data-dir="w" ><span class="arrow">→</span></button>
-          <button data-dir="e" ><span class="arrow">→</span></button>
-          <button data-dir="sw"><span class="arrow">→</span></button>
-          <button data-dir="se"><span class="arrow">→</span></button>
+          <button data-dir="nw" aria-label="Move up-left"><span class="arrow">→</span></button>
+          <button data-dir="ne" aria-label="Move up-right"><span class="arrow">→</span></button>
+          <button data-dir="w"  aria-label="Move left"><span class="arrow">→</span></button>
+          <button data-dir="e"  aria-label="Move right"><span class="arrow">→</span></button>
+          <button data-dir="sw" aria-label="Move down-left"><span class="arrow">→</span></button>
+          <button data-dir="se" aria-label="Move down-right"><span class="arrow">→</span></button>
         </div>
       </div>
     </div>
@@ -97,7 +56,7 @@
       <button id="again-btn">New Game</button>
     </div>
   </section>
-  
+
 
   <script src="main.js"></script>
 </body>
